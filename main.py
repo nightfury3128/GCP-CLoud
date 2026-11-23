@@ -98,8 +98,8 @@ def index():
     return render_template(
         "index.html",
         creator_first="Nipun",
-        creator_last="Chandra"
-        creator_email="chandrnu@mail.uc.edu,
+        creator_last="Chandra",
+        creator_email="chandrnu@mail.uc.edu",
     )
 
 
