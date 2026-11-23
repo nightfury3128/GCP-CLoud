@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bearcat Campus Assistant</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#ecedf4;background:#101017;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at top right,#4f2039,transparent 42%),#101017}
+main{width:min(760px,100%);min-height:600px;background:#1b1b26;border:1px solid #353443;border-radius:22px;overflow:hidden;box-shadow:0 25px 65px #0005;display:flex;flex-direction:column}
+header{background:#a32643;padding:22px 28px}header h1{font-size:22px;margin:0}header p{opacity:.9;margin:6px 0 0;font-size:13px}
+section{padding:28px;flex:1}h2{margin:0 0 12px;font-size:23px}p{color:#bbb9cb;line-height:1.6}
+label{display:block;font-size:14px;margin:16px 0 7px}input{width:100%;padding:14px;background:#11111a;border:1px solid #454353;border-radius:10px;color:white;font:inherit}input:focus{outline:2px solid #e75c82}
+button{border:0;border-radius:10px;padding:12px 16px;cursor:pointer;font:inherit;font-weight:600;background:#c52e58;color:white}button:hover{filter:brightness(1.12)}button:disabled{opacity:.5;cursor:wait}.wide{width:100%;margin-top:24px}
+.hidden{display:none!important}#chat{display:flex;flex-direction:column;gap:16px;min-height:0}.messages{height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:5px}.bubble{max-width:88%;padding:12px 15px;border-radius:15px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}.bubble.user{align-self:end;background:#9f2c4d}.bubble.bot{align-self:start;background:#30303d}.source{font-size:11px;color:#b8b8c5;margin-top:5px}
+#question-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#question-buttons button{background:#30303d;font-size:12px;text-align:left;font-weight:500;border:1px solid #55515f}
+.send{display:flex;gap:9px}.send input{flex:1;min-width:0}.send button{min-width:85px}.footer{display:flex;justify-content:space-between;align-items:center;gap:10px}.footer button{background:#4b4856}.detail{padding:13px 16px;background:#292935;border-radius:11px;margin:14px 0;overflow-wrap:anywhere}.detail strong{color:#fff}a{color:#ff9ab4}
+@media(max-width:520px){section{padding:19px}#question-buttons{grid-template-columns:1fr}.messages{height:300px}.send{flex-wrap:wrap}.send button{width:100%}}
+</style></head>
+<body><main>
+<header><h1>🎓 Bearcat Campus Assistant</h1><p>University of Cincinnati • Student inquiry chatbot</p></header>
+<section id="welcome"><h2>Welcome!</h2><p>Enter your information to start chatting. Your information is used only in this browser session to display your end-of-chat summary.</p>
+<form id="profile-form"><label for="first">First name</label><input id="first" maxlength="80" autocomplete="given-name" required>
+<label for="last">Last name</label><input id="last" maxlength="80" autocomplete="family-name" required>
+<label for="email">Email address</label><input id="email" type="email" maxlength="150" autocomplete="email" required>
+<button class="wide" type="submit">Start chatting →</button></form></section>
+<section id="chat" class="hidden"><div id="messages" class="messages" aria-live="polite"></div>
+<div id="question-buttons" aria-label="Suggested questions"></div>
+<form id="message-form" class="send"><input id="message" placeholder="Type your college question..." maxlength="1000" required aria-label="Chat message"><button id="send" type="submit">Send</button></form>
+<div class="footer"><small>University information may change.</small><button id="finish" type="button">End chat</button></div></section>
+<section id="conclusion" class="hidden"><h2>Chat complete 🎉</h2><p>Thank you for using the Bearcat Campus Assistant.</p><h3>Visitor information</h3><div id="visitor" class="detail"></div><h3>Chatbot creator information</h3>
+<div class="detail"><strong>First name:</strong> <span id="creator-first"></span><br><strong>Last name:</strong> <span id="creator-last"></span><br><strong>School email:</strong> <span id="creator-email"></span></div>
+<button id="restart" class="wide" type="button">Start another chat</button></section>
+</main>
+<script>
+const creator = {{ {'first':creator_first,'last':creator_last,'email':creator_email}|tojson }};
+let visitor={};const $=id=>document.getElementById(id);
+function show(id){for(const x of ['welcome','chat','conclusion'])$(x).classList.toggle('hidden',x!==id)}
+function bubble(message,kind,source){const div=document.createElement('div');div.className='bubble '+kind;div.textContent=message;if(source){const s=document.createElement('div');s.className='source';s.textContent=source;div.appendChild(s)}$('messages').appendChild(div);$('messages').scrollTop=$('messages').scrollHeight}
+$('profile-form').addEventListener('submit',async e=>{e.preventDefault();visitor={first:$('first').value.trim(),last:$('last').value.trim(),email:$('email').value.trim()};if(!visitor.first||!visitor.last)return;show('chat');bubble('Welcome, '+visitor.first+'! Choose one of the four questions or type your own question.','bot');$('message').focus()});
+async function sendMessage(value){const message=value.trim();if(!message)return;const b=$('send');b.disabled=true;bubble(message,'user');$('message').value='';try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});const data=await r.json();bubble(data.answer||data.error||'Something went wrong.','bot',data.source)}catch(e){bubble('Could not contact the chatbot. Please try again.','bot')}finally{b.disabled=false;$('message').focus()}}
+$('message-form').addEventListener('submit',e=>{e.preventDefault();sendMessage($('message').value)});
+fetch('/questions').then(r=>r.json()).then(questions=>{for(const q of questions){const button=document.createElement('button');button.type='button';button.textContent=q.question;button.addEventListener('click',()=>sendMessage(q.question));$('question-buttons').appendChild(button)}}).catch(()=>bubble('Could not load suggested questions.','bot'));
+$('finish').addEventListener('click',()=>{$('visitor').replaceChildren();for(const [key,label] of [['first','First name'],['last','Last name'],['email','Email address']]){const line=document.createElement('div');const strong=document.createElement('strong');strong.textContent=label+': ';line.append(strong,document.createTextNode(visitor[key]||''));$('visitor').append(line)}$('creator-first').textContent=creator.first;$('creator-last').textContent=creator.last;$('creator-email').textContent=creator.email;show('conclusion')});
+$('restart').addEventListener('click',()=>{visitor={};$('profile-form').reset();$('messages').replaceChildren();show('welcome')});
+</script></body></html>

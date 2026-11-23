@@ -1,0 +1,17 @@
+runtime: python312
+instance_class: F1
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 1
+  min_idle_instances: 0
+  max_idle_instances: 0
+
+env_variables:
+  ENABLE_GEMINI: "false"
+  VERTEX_LOCATION: "us-central1"
+  GEMINI_MODEL: "gemini-2.5-flash"
+
+  CREATOR_FIRST_NAME: "Nipun"
+  CREATOR_LAST_NAME: "Chandra"
+  CREATOR_EMAIL: "chandrnu@mail.uc.edu"
